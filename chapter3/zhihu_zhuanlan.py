@@ -1,7 +1,9 @@
 from bs4 import BeautifulSoup
 import requests
 from pprint import pprint
+from zhon import hanzi
 import jieba
+import re
 from collections import Counter
 
 
@@ -71,6 +73,11 @@ class ArticleAnalyze(ZhiDailyNewsAPI):
     def get_single_article_analyze(content):
         seg_list = jieba.cut_for_search(content)
         word_dict = Counter(seg_list)
+        word_list = list(word_dict)
+        # remove SBC case
+        for i in hanzi.punctuation:
+            if i in word_list:
+                del word_dict[i]
         sorted_dict = sorted(word_dict.items(), key=lambda t: t[1], reverse=True)
         return sorted_dict
 
