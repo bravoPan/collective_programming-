@@ -27,10 +27,10 @@ class ZhiDailyNewsAPI(object):
     def get_article_size(self):
         return len(self.data)
 
-    def get_article(self, n=10):
-        if n > self.get_article_size():
+    def get_article(self, size=10):
+        if size > self.get_article_size():
             return False
-        return self.data[0:n]
+        return self.data[0:size]
 
     def save_as_text(self, name="article", write_item=["title", "content"], size=10):
         if size > self.get_article_size():
@@ -45,4 +45,5 @@ class ZhiDailyNewsAPI(object):
 
 if __name__ == "__main__":
     test = ZhiDailyNewsAPI()
-    test.save_as_text(size=100)
+    pprint(test.get_article(size=100))
+    # test.save_as_text(size=100)
