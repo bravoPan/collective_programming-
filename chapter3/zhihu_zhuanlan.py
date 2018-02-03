@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup
 import requests
 from pprint import pprint
+import jieba
+from collections import Counter
 
 
 class ZhiDailyNewsAPI(object):
@@ -43,7 +45,39 @@ class ZhiDailyNewsAPI(object):
                 f.write("\n")
 
 
+class ArticleAnalyze(ZhiDailyNewsAPI):
+    def get_article_analyze(self, n=5):
+        # test the first article
+        article_size = self.get_article_size()
+        all_article = self.get_article(article_size)
+        analyze_list = []
+        for i in all_article:
+            article_word_count = {}
+            article_word_count["title"] = i["title"]
+            article_word_count["content"] = self.get_single_article_analyze(i["content"])
+            analyze_list.append(article_word_count)
+        return analyze_list[0:n]
+
+    def save_article_analyze(self, n=5):
+        with open("word_count.txt", "w", encoding="utf-8") as f:
+            for i in self.get_article_analyze(n=n):
+                f.write(i["title"])
+                f.write("\n")
+                f.write(str((i["content"])))
+                f.write("\n")
+                f.write("\n")
+
+    @staticmethod
+    def get_single_article_analyze(content):
+        seg_list = jieba.cut_for_search(content)
+        word_dict = Counter(seg_list)
+        sorted_dict = sorted(word_dict.items(), key=lambda t: t[1], reverse=True)
+        return sorted_dict
+
+
 if __name__ == "__main__":
-    test = ZhiDailyNewsAPI()
-    pprint(test.get_article(size=100))
-    # test.save_as_text(size=100)
+    # test = ZhiDailyNewsAPI()
+    # pprint(test.get_article(size=100))
+    test = ArticleAnalyze()
+    test.get_article_analyze()
+    test.save_article_analyze(n=test.get_article_size())
