@@ -24,9 +24,10 @@ for w, bc in ap_count.items():
 
 # 保存矩阵，记录真对每个博客的所有单词统计情况
 out_file = open("article_data.txt", "w", encoding="utf-8")
+out_file.write("Article")
 for word in word_list:
     out_file.write("\t{}".format(word))
-    out_file.write("\n")
+out_file.write("\n")
 for single_article in article_list:
     out_file.write(single_article["title"])
     single_article_contain_word_list = [i[0] for i in single_article["content"]]
@@ -36,4 +37,4 @@ for single_article in article_list:
             out_file.write("\t{}".format(word_frequency[0]))
         else:
             out_file.write("\t0")
-        out_file.write("\n")
+    out_file.write("\n")
