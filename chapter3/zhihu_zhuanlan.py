@@ -3,8 +3,8 @@ import requests
 from pprint import pprint
 from zhon import hanzi
 import jieba
-import re
 from collections import Counter
+from chapter3.config import __chinese_meaningless_word__
 
 
 class ZhiDailyNewsAPI(object):
@@ -75,7 +75,9 @@ class ArticleAnalyze(ZhiDailyNewsAPI):
         word_dict = Counter(seg_list)
         word_list = list(word_dict)
         # remove SBC case
-        for i in hanzi.punctuation:
+        filter_list = hanzi.punctuation + "".join(__chinese_meaningless_word__)
+        # filter the ready-filtered works
+        for i in filter_list:
             if i in word_list:
                 del word_dict[i]
         sorted_dict = sorted(word_dict.items(), key=lambda t: t[1], reverse=True)
