@@ -149,4 +149,4 @@ test.save_article_analyze(n=size) //保存结果
 > 文字形状的不够具有可视性，所以最好的方法是使用PIL库进行可视化处理,以下是最后处理的结果
 由于分辨率的问题,具体可以在`article_clust.jpg`进行查看.
 
-![](article_clust.jpg)
+![]('article_clust.jpg')
