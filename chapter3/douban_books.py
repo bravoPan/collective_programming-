@@ -114,29 +114,48 @@ def parser_book_from_summary(summary):
     else:
         return None
 
-        # pprint(api_books_dict)
-        # for i in api_books_dict:
-        #     pprint(api_books_dict[i])
-        #     for book_name in i["summary"]:
-        #         pprint(book_name)
-        #
-        #         for book_name in i:
-        #             pprint(book_name["summary"])
-        #     pprint(reader_collect_dict)
+
+# <-------------------------------------------load json and analyze------------------------------------>
+def load_json_readers():
+    return eval(json.load(open("readers_prefers.json", encoding="utf-8")))[0]
+
+
+def book_to_reader():
+    new_reader_dict = load_json_readers()
+    books = {}
+    for reader in new_reader_dict:
+        for book in new_reader_dict[reader]:
+            books.setdefault(book, 0)
+            books[book] += 1
+    # result = sorted(books.items(), key=lambda t: t[1], reverse=False)
+    # return result
+    dict_keys = list(books.keys())
+    for i in dict_keys:
+        if books[i] <= 1:
+            del books[i]
+    return books
+
+
+def create_matrix():
+    book_names = book_to_reader()
+    labels = book_names.keys()
+    readers_prefer_lists = []
+    reader_to_book = load_json_readers()
+    index = 0
+    readers = []
+    for i in reader_to_book:
+        readers_prefer_lists.append([])
+        readers.append(i)
+        for j in labels:
+            if j in reader_to_book[i]:
+                readers_prefer_lists[index].append(1)
+            else:
+                readers_prefer_lists[index].append(0)
+        index += 1
+    return readers, readers_prefer_lists, labels
 
 
 if __name__ == "__main__":
-    # get_100_user(url, 0)
-    user_list = get_dou_user(user_url)[0:200]
-    try:
-        [get_books(name) for name in user_list]
-    except:
-        pass
-    pprint(reader_dict)
-    test_json = json.dumps([reader_dict])
-    with open("readers_prefers.json", "w") as f:
-        json.dump(test_json, f)
-        # with open("test.json", "w") as f:
-        #     json.dump(test_json, f)
-        # test_dict = eval(json.load(open("test.json")))[0]
-        # pprint(test_dict)
+    book_to_reader()
+    create_matrix()
+    print(len(get_dou_user(user_url)))
