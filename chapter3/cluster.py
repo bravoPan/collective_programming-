@@ -2,6 +2,7 @@ from math import sqrt
 from pprint import pprint
 from PIL import Image, ImageDraw, ImageFont
 import random
+from chapter3.douban_books import create_matrix
 
 
 def readfile(filename):
@@ -110,14 +111,12 @@ def get_depth(clust):
 
 
 def draw_den_drog_gram(clust, labels, jpeg="clusters.jpg"):
-    h = get_depth(clust) * 240
+    h = get_depth(clust) * 200
     w = 1200
     depth = get_depth(clust)
-
     scaling = float(w - 300) / depth
     img = Image.new("RGB", (w, int(h)), (255, 255, 255))
     draw = ImageDraw.Draw(img)
-
     draw_node(draw, clust, 10, (h / 2), scaling, labels)
     img.save(jpeg, "JPEG")
 
@@ -138,7 +137,7 @@ def draw_node(draw, clust, x, y, scaling, labels):
         draw_node(draw, clust.right, x + ll, bottom - h2 / 2, scaling, labels)
     else:
         font = ImageFont.truetype("/Library/Fonts/Arial Unicode.ttf")
-        draw.text((x + 15, y - 7), labels[clust.id], (0, 0, 0), font=font)
+        draw.text((x + 10, y - 7), labels[clust.id], (0, 0, 0), font=font)
 
 
 def k_cluster(rows, distance=pearson, k=4):
@@ -234,11 +233,22 @@ def draw_2d(data, labels, jpeg="md2d.jpg"):
     img.save(jpeg, "JPEG")
 
 
+def tanimoto(v1, v2):
+    c1, c2, shr = 0, 0, 0
+
+    for i in range(len(v1)):
+        if v1[i] != 0:
+            c1 += 1
+        if v2[i] != 0:
+            c2 += 1
+        if v1[i] != 0 and v2[i] != 0:
+            shr += 1
+    return 1.0 - float((shr) / (c1 + c2 - shr))
+
+
 if __name__ == "__main__":
-    article_names, words, data = readfile("article_data.txt")
-    # pprint(data)
-    # pprint(article_names)
-    # clust = h_cluster(data)
-    # k_clust_test = k_cluster(data, k=10)
-    coords = scale_down(data)
-    draw_2d(coords, article_names, jpeg="article2d.jpg")
+    readers, readers_prefer_lists, labels = create_matrix()
+    transpose_matrix = [[readers_prefer_lists[j][i] for j in range(len(readers_prefer_lists))] for i in
+                        range(len(readers_prefer_lists[0]))]
+    clust = h_cluster(transpose_matrix, distance=tanimoto)
+    draw_den_drog_gram(clust, list(labels), jpeg="reader_prefers.jpg")

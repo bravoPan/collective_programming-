@@ -5,7 +5,6 @@ import time
 from chapter3.config import readers
 import json
 import re
-import demjson
 
 url = "https://www.douban.com/people/cat221/"
 user_url = "https://www.douban.com/note/187876507/"
@@ -96,28 +95,35 @@ def get_dou_user(url):
 
 
 def get_books(name):
-    reader_dict.setdefault(name, [])
     contact_url = "https://api.douban.com/v2/book/user/{}/collections".format(name)
     wb_data = requests.get(contact_url, headers=headers, proxies=proxies)
     reader_collect_dict = eval(wb_data.text)
+    pprint(reader_collect_dict)
     api_summary_list = [i["book"]["summary"] for i in reader_collect_dict["collections"]]
-    all_book_sets = [parser_book_from_summary(summary) for summary in api_summary_list if
-                     parser_book_from_summary(summary)]
-    reader_dict[name] = all_book_sets
+    current_books = []
+    books_title = map(parser_book_from_summary, api_summary_list)
+    [[current_books.append(j) for j in i] for i in books_title if i]
+    if current_books:
+        reader_dict.setdefault(name, [])
+        # [pprint(i) for i in books_title]
+        # all_book_sets = [parser_book_from_summary(summary) for summary in api_summary_list if
+        #                  parser_book_from_summary(summary)]
+        # pprint(all_book_sets)
+        reader_dict[name] = list(set(current_books))
 
 
 def parser_book_from_summary(summary):
     pattern = re.compile("《(\w+)》")
     book_titles = set(re.findall(pattern, summary))
     if book_titles:
-        return "".join(book_titles)
+        return book_titles
     else:
         return None
 
 
 # <-------------------------------------------load json and analyze------------------------------------>
 def load_json_readers():
-    return eval(json.load(open("readers_prefers.json", encoding="utf-8")))[0]
+    return eval(json.load(open("new_douban.json", encoding="utf-8")))[0]
 
 
 def book_to_reader():
@@ -131,7 +137,7 @@ def book_to_reader():
     # return result
     dict_keys = list(books.keys())
     for i in dict_keys:
-        if books[i] <= 1:
+        if books[i] <= 2:
             del books[i]
     return books
 
@@ -144,8 +150,8 @@ def create_matrix():
     index = 0
     readers = []
     for i in reader_to_book:
-        readers_prefer_lists.append([])
         readers.append(i)
+        readers_prefer_lists.append([])
         for j in labels:
             if j in reader_to_book[i]:
                 readers_prefer_lists[index].append(1)
@@ -155,7 +161,39 @@ def create_matrix():
     return readers, readers_prefer_lists, labels
 
 
+def write_file():
+    readers, data, labels = create_matrix()
+    out = open("douban.txt", "w", encoding="utf-8")
+    out.write("Books")
+    for user in readers:
+        out.write("\t{}".format(user))
+    out.write("\n")
+    index = 0
+    for i in labels:
+        out.write(i + "\t")
+        for t in data[index]:
+            out.write(str(t) + "\t")
+        out.write("\n")
+        index += 1
+    pprint(len(readers))
+    pprint("rows are " + str(len(data)) + "columns are " + str(len(data[0])))
+    pprint(len(labels))
+
+
 if __name__ == "__main__":
-    book_to_reader()
-    create_matrix()
-    print(len(get_dou_user(user_url)))
+    # book_to_reader()
+    # create_matrix()
+    # write_file()
+    # user_lists = get_dou_user(user_url)[0:200]
+    # try:
+    #     [get_books(i) for i in user_lists]
+    # except:
+    #     pass
+    # test_json = json.dumps([reader_dict])
+    # with open("new_douban.json", "w", encoding="utf-8") as f:
+    #     json.dump(test_json, f)
+    # dou_dict = eval(json.load(open("new_douban.json", encoding="utf-8")))[0]
+    # pprint(dou_dict)
+    # create_matrix()
+    # write_file()
+    get_books("cat221")
