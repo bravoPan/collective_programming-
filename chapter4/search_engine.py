@@ -154,9 +154,9 @@ class Searcher:
     def get_scored_list(self, rows):
         total_scores = dict([(row[0], 0) for row in rows])
 
-        weights = [(1.0, self.frequency_score(rows))]
+        weights = [[(1.0, self.location_score(rows))], [(1.0, self.frequency_score(rows))]]
 
-        for (weight, scores) in weights:
+        for (weight, scores) in weights[0]:
             for url in total_scores:
                 total_scores[url] += weight * scores[url]
 
@@ -177,10 +177,9 @@ class Searcher:
 
     def normalize_scores(self, scores, small_is_better=0):
         v_small = 0
-        # pprint([(i,1) for i,j in scores.items()])
         if small_is_better:
             min_score = min(scores.values())
-            inter_mediate_list = [(u, float(min_score) / max(v_small, 1)) for (u, j) in scores.items()]
+            inter_mediate_list = [(u, float(min_score) / max(v_small, j)) for (u, j) in scores.items()]
             return dict(inter_mediate_list)
         else:
             max_score = max(scores.values())
@@ -188,11 +187,21 @@ class Searcher:
                 max_score = v_small
             return dict([(u, float(c) / max_score) for (u, c) in scores.items()])
 
+    # 根据单词频率划分权重
     def frequency_score(self, rows):
         counts = dict([row[0], 0] for row in rows)
         for row in rows:
             counts[row[0]] += 1
         return self.normalize_scores(counts)
+
+    # 根据文档位置划分权重
+    def location_score(self, rows):
+        locations = dict([(row[0], 1000000) for row in rows])
+        for row in rows:
+            loc = sum(row[1:])
+            if loc < locations[row[0]]:
+                locations[row[0]] = loc
+        return self.normalize_scores(locations, small_is_better=1)
 
 
 if __name__ == "__main__":
@@ -202,5 +211,5 @@ if __name__ == "__main__":
     # test.crawl(pages, depth=2)
     # pprint([row for row in test.con.execute("SELECT * FROM urllist")])
     e = Searcher("search_index.db")
-    e.query("listen")
+    e.query("samurai")
     # pprint(e.get_match_rows("dynamic programming"))
