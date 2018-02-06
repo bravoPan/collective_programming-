@@ -2,6 +2,9 @@ from bs4 import BeautifulSoup
 import requests
 from pprint import pprint
 from sqlite3 import dbapi2 as sqlite
+import re
+from chapter4.config import ignored_words
+
 
 class crawler:
     def __init__(self, dbname):
@@ -17,18 +20,57 @@ class crawler:
         pass
 
     def get_entry_id(self, table, field, value, create_new=True):
-        return None
+        cur = self.con.execute("SELECT rowid FROM %s WHERE %s='%s'" % (table, field, value))
+        res = cur.fetchone()
+        if res == None:
+            cur = self.con.execute("INSERT INTO %s (%s) VALUES ('%s')" % (table, field, value))
+            return cur.lastrowid
+        else:
+            return res[0]
 
     def add_to_index(self, url, soup):
+        if self.is_indexed(url):
+            return
         print("Indexing{}".format(url))
 
+        # get every word
+        text = self.get_text_only(soup)
+        words = self.separate_words(text)
+
+        # get id of URL
+        url_id = self.get_entry_id("urllist", "url", url)
+
+        # link every word to word
+        for i in range(len(words)):
+            word = words[i]
+            if word in ignored_words:
+                continue
+            word_id = self.get_entry_id("wordlist", "word", word)
+            self.con.execute(
+                "INSERT INTO wordlocation(urlid, wordid, locationid) VALUES ({}, {},{})".format(url_id, word_id, i))
+
     def get_text_only(self, soup):
-        return None
+        v = soup.string
+        if v == None:
+            c = soup.contents
+            result_text = ''
+            for t in c:
+                sub_text = self.get_text_only(t)
+                result_text += sub_text + "\n"
+            return result_text
+        else:
+            return v.strip()
 
     def separate_words(self, text):
-        return None
+        splitter = re.compile("\\W+")
+        return [s.lower() for s in splitter.split(text) if s != ""]
 
     def is_indexed(self, url):
+        u = self.con.execute("SELECT rowid FROM urllist WHERE url='%s'" % url).fetchone()
+        if u:
+            v = self.con.execute("SELECT * FROM wordlocation WHERE urlid=%d" % u[0]).fetchone()
+            if v:
+                return True
         return False
 
     def add_link_ref(self, url_from, url_to, link_text):
@@ -74,7 +116,8 @@ class crawler:
 
 
 if __name__ == "__main__":
-    page_list = ["https://zh.wikipedia.org/wiki/%E9%97%9C%E5%8E%9F%E4%B9%8B%E6%88%B0"]
     test = crawler("search_index.db")
-    test.create_index_tables()
-    # test.crawl(page_list)
+    # test.create_index_tables()
+    # pages = ["https://gl.wikipedia.org/wiki/Batalla_de_Sekigahara"]
+    # test.crawl(pages)
+    pprint([row for row in test.con.execute("SELECT * FROM wordlocation WHERE wordid=7")])
