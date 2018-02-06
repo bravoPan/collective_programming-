@@ -4,6 +4,7 @@ from pprint import pprint
 from sqlite3 import dbapi2 as sqlite
 import re
 from chapter4.config import ignored_words
+import time
 
 
 class crawler:
@@ -31,7 +32,7 @@ class crawler:
     def add_to_index(self, url, soup):
         if self.is_indexed(url):
             return
-        print("Indexing{}".format(url))
+        print("Indexing {}".format(url))
 
         # get every word
         text = self.get_text_only(soup)
@@ -98,7 +99,7 @@ class crawler:
                         link_text = self.get_text_only(link)
                         self.add_link_ref(page, next_href, link_text)
                 self.db_commit()
-        pass
+            pages = new_pages
 
     def create_index_tables(self):
         self.con.execute("CREATE TABLE urllist(url)")
@@ -115,9 +116,91 @@ class crawler:
         pass
 
 
+class Searcher:
+    def __init__(self, dbname):
+        self.con = sqlite.connect(dbname)
+
+    def __del__(self):
+        self.con.close()
+
+    def get_match_rows(self, q):
+        field_list = "w0.urlid"
+        table_list = ""
+        clause_list = ""
+        word_ids = []
+
+        words = q.split(" ")
+        table_number = 0
+
+        for word in words:
+            word_row = self.con.execute("SELECT rowid FROM wordlist WHERE word='%s'" % word).fetchone()
+            if word_row:
+                word_id = word_row[0]
+                word_ids.append(word_id)
+                if table_number > 0:
+                    table_list += ","
+                    clause_list += " and "
+                    clause_list += "w%d.urlid=w%d.urlid and " % (table_number - 1, table_number)
+                field_list += ",w%d.locationid" % table_number
+                table_list += "wordlocation w%d" % table_number
+                clause_list += "w%d.wordid=%d" % (table_number, word_id)
+                table_number += 1
+
+        full_query = "SELECT %s FROM %s WHERE %s" % (field_list, table_list, clause_list)
+        cur = self.con.execute(full_query)
+        rows = [row for row in cur]
+        return rows, word_ids
+
+    def get_scored_list(self, rows):
+        total_scores = dict([(row[0], 0) for row in rows])
+
+        weights = [(1.0, self.frequency_score(rows))]
+
+        for (weight, scores) in weights:
+            for url in total_scores:
+                total_scores[url] += weight * scores[url]
+
+        return total_scores
+
+    def get_url_name(self, id):
+        return self.con.execute("SELECT url FROM urllist WHERE rowid=%d" % id).fetchone()[0]
+
+    def query(self, q):
+        rows, word_ids = self.get_match_rows(q)
+        # pprint(rows)
+        scores = self.get_scored_list(rows)
+
+        ranked_score = sorted([(score, url) for (url, score) in scores.items()], reverse=True)
+        # pprint(ranked_score)
+        for (score, urlid) in ranked_score[0:10]:
+            print("%f\t%s" % (score, self.get_url_name(urlid)))
+
+    def normalize_scores(self, scores, small_is_better=0):
+        v_small = 0
+        # pprint([(i,1) for i,j in scores.items()])
+        if small_is_better:
+            min_score = min(scores.values())
+            inter_mediate_list = [(u, float(min_score) / max(v_small, 1)) for (u, j) in scores.items()]
+            return dict(inter_mediate_list)
+        else:
+            max_score = max(scores.values())
+            if max_score == 0:
+                max_score = v_small
+            return dict([(u, float(c) / max_score) for (u, c) in scores.items()])
+
+    def frequency_score(self, rows):
+        counts = dict([row[0], 0] for row in rows)
+        for row in rows:
+            counts[row[0]] += 1
+        return self.normalize_scores(counts)
+
+
 if __name__ == "__main__":
     test = crawler("search_index.db")
     # test.create_index_tables()
-    # pages = ["https://gl.wikipedia.org/wiki/Batalla_de_Sekigahara"]
-    # test.crawl(pages)
-    pprint([row for row in test.con.execute("SELECT * FROM wordlocation WHERE wordid=7")])
+    # pages = ["https://www.wikihow.com/Learn-English"]
+    # test.crawl(pages, depth=2)
+    # pprint([row for row in test.con.execute("SELECT * FROM urllist")])
+    e = Searcher("search_index.db")
+    e.query("listen")
+    # pprint(e.get_match_rows("dynamic programming"))
