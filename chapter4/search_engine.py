@@ -115,6 +115,26 @@ class crawler:
         self.db_commit()
         pass
 
+    def calculate_page_rank(self, iteration=20):
+        self.con.execute("DROP TABLE IF EXISTS pagerank")
+        self.con.execute("CREATE TABLE pagerank(urlid PRIMARY KEY, score)")
+
+        self.con.execute("INSERT INTO pagerank SELECT rowid, 1.0 FROM urllist")
+        self.db_commit()
+
+        for i in range(iteration):
+            print("Iteration %d" % i)
+            for (urlid,) in self.con.execute("SELECT rowid FROM urllist"):
+                pr = 0.15
+
+                for (linker,) in self.con.execute("SELECT  distinct fromid FROM link WHERE toid=%d" % urlid):
+                    linking_pr = self.con.execute("SELECT score FROM pagerank WHERE urlid=%d" % linker).fetchone()[0]
+                    linking_count = self.con.execute("SELECT count(*) FROM link WHERE fromid=%d" % linker).fetchone()[0]
+
+                    pr += 0.85 * (linking_pr / linking_count)
+                self.con.execute("UPDATE pagerank SET score=%f WHERE urlid=%d" % (pr, urlid))
+            self.db_commit()
+
 
 class Searcher:
     def __init__(self, dbname):
@@ -154,9 +174,10 @@ class Searcher:
     def get_scored_list(self, rows):
         total_scores = dict([(row[0], 0) for row in rows])
 
-        weights = [[(1.0, self.location_score(rows))], [(1.0, self.frequency_score(rows))]]
+        weights = [(1.0, self.location_score(rows)), (1.0, self.frequency_score(rows)),
+                   (1.0, self.page_rank_score(rows))]
 
-        for (weight, scores) in weights[0]:
+        for (weight, scores) in weights:
             for url in total_scores:
                 total_scores[url] += weight * scores[url]
 
@@ -203,6 +224,21 @@ class Searcher:
                 locations[row[0]] = loc
         return self.normalize_scores(locations, small_is_better=1)
 
+    def inbound_link_score(self, rows):
+        unique_urls = set([row[0] for row in rows])
+        inbound_count = dict(
+            [(u, self.con.execute("SELECT count(*) FROM link WHERE toid=%d" % u)) for u in unique_urls])
+        return self.normalize_scores(inbound_count)
+
+    def page_rank_score(self, rows):
+        page_ranks = dict(
+            [(row[0], self.con.execute("SELECT score FROM pagerank WHERE urlid=%d" % row[0]).fetchone()[0]) for row in
+             rows])
+
+        max_rank = max(page_ranks.values())
+        normalized_scores = dict([(u, float(l) / max_rank) for (u, l) in page_ranks.items()])
+        return normalized_scores
+
 
 if __name__ == "__main__":
     test = crawler("search_index.db")
@@ -212,4 +248,8 @@ if __name__ == "__main__":
     # pprint([row for row in test.con.execute("SELECT * FROM urllist")])
     e = Searcher("search_index.db")
     e.query("samurai")
+    # test.calculate_page_rank()
     # pprint(e.get_match_rows("dynamic programming"))
+    # cur = test.con.execute("SELECT * FROM pagerank ORDER BY score DESC")
+    # for i in range(3):
+    #     print(cur.lastrowid)

@@ -29,3 +29,22 @@
 0.001135	https://en.wikipedia.org/wiki/Siege_of_Odawara_(1590)
 0.001119	https://es.wikipedia.org/wiki/Sitio_de_Odawara_(1590)
 ```
+
+#### 基于pagerank,以上两个标准共同制定权重
+> 每一种衡量标准的最大权重都是1，所以3种最大的权重就是3，3代表最相关的网页;比如说基于单词频度的查询中`www.theshogunshouse`排名
+第一，基于文档位置中`samuraipodcast`排名第一，但是基于位置种`theshogunshouse`已经找不到了，因为根据位置排名
+他的权重已经不在前10之内了(这里只取了前10的结果)；再来看pagerank加上上面两种权重的综合排名，这里`samuraipodcast`排名第一，`theshogunshouse`
+排名第二，无疑很可靠，综合了以上的权重，所以综合所有权重能得到更准确的结果。
+
+```text
+2.168675	http://www.samuraipodcast.com
+2.000679	http://www.theshogunshouse.com/
+1.799620	http://forums.samurai-archives.com
+1.353012	http://www.samurai-archives.com
+1.193665	https://www.nakasendoway.com/themes/transport/
+1.193320	https://www.nakasendoway.com/themes/religion/
+1.181272	https://www.nakasendoway.com/themes/administration/
+1.119621	http://www.samurai-archives.com/searchst.html
+1.108600	https://hu.wikipedia.org/wiki/Szekigaharai_csata
+1.096639	https://en.wikipedia.org/wiki/Battle_of_Sekigahara
+```
