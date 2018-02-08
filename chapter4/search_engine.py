@@ -5,6 +5,7 @@ from sqlite3 import dbapi2 as sqlite
 import re
 from chapter4.config import ignored_words
 import time
+import chapter4.nn as nn
 
 
 class crawler:
@@ -148,6 +149,7 @@ class crawler:
 class Searcher:
     def __init__(self, dbname):
         self.con = sqlite.connect(dbname)
+        self.my_net = nn.SearchNet("nn.db")
 
     def __del__(self):
         self.con.close()
@@ -204,6 +206,8 @@ class Searcher:
         for (score, urlid) in ranked_score[0:10]:
             print("%f\t%s" % (score, self.get_url_name(urlid)))
 
+        return word_ids, [r[1] for r in ranked_score[0:10]]
+
     def normalize_scores(self, scores, small_is_better=0):
         v_small = 0
         if small_is_better:
@@ -247,6 +251,12 @@ class Searcher:
         normalized_scores = dict([(u, float(l) / max_rank) for (u, l) in page_ranks.items()])
         return normalized_scores
 
+    def nn_score(self, rows, word_ids):
+        url_ids = [url_id for url_id in set([row[0] for row in rows])]
+        nn_res = self.my_net.get_result(word_ids, url_ids)
+        scores = dict([(url_ids[i], nn_res[i]) for i in range(len(url_ids))])
+        return self.normalize_scores(scores)
+
 ''' Have not been sloved 
     def link_text_score(self, rows, word_ids):
         link_scores = dict([(row[0], 0) for row in rows])
@@ -274,7 +284,7 @@ if __name__ == "__main__":
     # test.crawl(pages, depth=2)
     # pprint([row for row in test.con.execute("SELECT * FROM urllist")])
     e = Searcher("search_index.db")
-    e.query("python")
+    e.query("samurai")
     # test.calculate_page_rank()
     # pprint(e.get_match_rows("dynamic programming"))
     # cur = test.con.execute("SELECT * FROM pagerank ORDER BY score DESC")
