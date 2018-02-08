@@ -75,7 +75,16 @@ class crawler:
         return False
 
     def add_link_ref(self, url_from, url_to, link_text):
-        pass
+        words = self.separate_words(link_text)
+        fromid = self.get_entry_id('urllist', 'url', url_from)
+        toid = self.get_entry_id('urllist', 'url', url_to)
+        if fromid == toid: return
+        cur = self.con.execute("insert into link(fromid,toid) values (%d,%d)" % (fromid, toid))
+        linkid = cur.lastrowid
+        for word in words:
+            if word in ignored_words: continue
+            wordid = self.get_entry_id('wordlist', 'word', word)
+            self.con.execute("insert into linkword(linkid,wordid) values (%d,%d)" % (linkid, wordid))
 
     def crawl(self, pages, depth=2):
         for i in range(depth):
@@ -171,7 +180,7 @@ class Searcher:
         rows = [row for row in cur]
         return rows, word_ids
 
-    def get_scored_list(self, rows):
+    def get_scored_list(self, rows, word_ids):
         total_scores = dict([(row[0], 0) for row in rows])
 
         weights = [(1.0, self.location_score(rows)), (1.0, self.frequency_score(rows)),
@@ -188,8 +197,7 @@ class Searcher:
 
     def query(self, q):
         rows, word_ids = self.get_match_rows(q)
-        # pprint(rows)
-        scores = self.get_scored_list(rows)
+        scores = self.get_scored_list(rows, word_ids)
 
         ranked_score = sorted([(score, url) for (url, score) in scores.items()], reverse=True)
         # pprint(ranked_score)
@@ -239,6 +247,25 @@ class Searcher:
         normalized_scores = dict([(u, float(l) / max_rank) for (u, l) in page_ranks.items()])
         return normalized_scores
 
+''' Have not been sloved 
+    def link_text_score(self, rows, word_ids):
+        link_scores = dict([(row[0], 0) for row in rows])
+        for word_id in word_ids:
+            cur = self.con.execute(
+                "SELECT link.fromid, link.toid FROM linkwords, link WHERE wordid=%d AND linkwords.linkid=link.rowid"
+                % word_id)
+            test = self.con.execute(
+                "SELECT * FROM linkwords")
+            pprint(test.description)
+            for (fromid, toid) in cur:
+                if toid in link_scores:
+                    pr = self.con.execute("SELECT score FROM pagerank WHERE urlid=%d" % fromid).fetchone()[0]
+                    link_scores[toid] += pr
+        max_score = max(link_scores.values())
+        # pprint(max_score)
+        normalized_scores = dict([(u, float(l) / max_score) for (u, l) in link_scores.items()])
+        return normalized_scores
+'''
 
 if __name__ == "__main__":
     test = crawler("search_index.db")
@@ -247,7 +274,7 @@ if __name__ == "__main__":
     # test.crawl(pages, depth=2)
     # pprint([row for row in test.con.execute("SELECT * FROM urllist")])
     e = Searcher("search_index.db")
-    e.query("samurai")
+    e.query("python")
     # test.calculate_page_rank()
     # pprint(e.get_match_rows("dynamic programming"))
     # cur = test.con.execute("SELECT * FROM pagerank ORDER BY score DESC")
