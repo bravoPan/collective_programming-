@@ -2,7 +2,6 @@ from math import tanh
 from sqlite3 import dbapi2 as sqlite
 from pprint import pprint
 
-
 class SearchNet:
     def __init__(self, db_name):
         self.con = sqlite.connect(db_name)

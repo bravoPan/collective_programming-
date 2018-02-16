@@ -257,25 +257,23 @@ class Searcher:
         scores = dict([(url_ids[i], nn_res[i]) for i in range(len(url_ids))])
         return self.normalize_scores(scores)
 
-''' Have not been sloved 
-    def link_text_score(self, rows, word_ids):
-        link_scores = dict([(row[0], 0) for row in rows])
-        for word_id in word_ids:
-            cur = self.con.execute(
-                "SELECT link.fromid, link.toid FROM linkwords, link WHERE wordid=%d AND linkwords.linkid=link.rowid"
-                % word_id)
-            test = self.con.execute(
-                "SELECT * FROM linkwords")
-            pprint(test.description)
-            for (fromid, toid) in cur:
-                if toid in link_scores:
-                    pr = self.con.execute("SELECT score FROM pagerank WHERE urlid=%d" % fromid).fetchone()[0]
-                    link_scores[toid] += pr
-        max_score = max(link_scores.values())
-        # pprint(max_score)
-        normalized_scores = dict([(u, float(l) / max_score) for (u, l) in link_scores.items()])
-        return normalized_scores
-'''
+    # def link_text_score(self, rows, word_ids):
+    #     link_scores = dict([(row[0], 0) for row in rows])
+    #     for word_id in word_ids:
+    #         cur = self.con.execute(
+    #             "SELECT link.fromid, link.toid FROM linkwords, link WHERE wordid=%d AND linkwords.linkid=link.rowid"
+    #             % word_id)
+    #         test = self.con.execute(
+    #             "SELECT * FROM linkwords")
+    #         pprint(test.description)
+    #         for (fromid, toid) in cur:
+    #             if toid in link_scores:
+    #                 pr = self.con.execute("SELECT score FROM pagerank WHERE urlid=%d" % fromid).fetchone()[0]
+    #                 link_scores[toid] += pr
+    #     max_score = max(link_scores.values())
+    #     # pprint(max_score)
+    #     normalized_scores = dict([(u, float(l) / max_score) for (u, l) in link_scores.items()])
+    #     return normalized_scores
 
 if __name__ == "__main__":
     test = crawler("search_index.db")
