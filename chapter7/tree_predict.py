@@ -1,6 +1,7 @@
 from chapter7.config import my_data
 from math import log
 from pprint import pprint
+from PIL import Image, ImageDraw
 
 
 class DecisionNode:
@@ -111,7 +112,73 @@ def print_tree(tree, indent=""):
         print_tree(tree.fb, indent + " ")
 
 
+def get_width(tree):
+    if not tree.tb and not tree.fb:
+        return 1
+    else:
+        return get_width(tree.tb) + get_width(tree.fb)
+
+
+# 分支的深度等于最长子分支的总长度加1
+def get_depth(tree):
+    if not tree.tb and not tree.fb:
+        return 0
+    else:
+        return max(get_depth(tree.tb), get_depth(tree.fb)) + 1
+
+
+def draw_tree(tree, jpeg="tree.jpg"):
+    w = get_width(tree) * 100
+    h = get_depth(tree) * 100 + 200
+
+    img = Image.new("RGB", (w, h), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+
+    draw_node(draw, tree, w / 2, 20)
+    img.save(jpeg, "JPEG")
+
+
+def draw_node(draw, tree, x, y):
+    if not tree.results:
+        w1 = get_width(tree.fb) * 100
+        w2 = get_width(tree.tb) * 100
+
+        left = x - (w1 + w2) / 2
+        right = x + (w1 + w2) / 2
+
+        draw.text((x - 20, y - 10), str(tree.col) + ":" + str(tree.value), (0, 0, 0))
+        draw.line((x, y, left + w1 / 2, y + 100), fill=(255, 0, 0))
+        draw.line((x, y, right - w2 / 2, y + 100), fill=(255, 0, 0))
+
+        draw_node(draw, tree.fb, left + w1 / 2, y + 100)
+        draw_node(draw, tree.tb, right - w2 / 2, y + 100)
+
+    else:
+        txt = " \n".join(["%s:%d" % v for v in tree.results.items()])
+        draw.text((x - 20, y), txt, (0, 0, 0))
+
+
+def classify(obeservation, tree):
+    if tree.results:
+        return tree.results
+    else:
+        v = obeservation[tree.col]
+        branch = None
+        if isinstance(v, int) or isinstance(v, float):
+            if v >= tree.value:
+                branch = tree.tb
+            else:
+                branch = tree.fb
+        else:
+            if v == tree.value:
+                branch = tree.tb
+            else:
+                branch = tree.fb
+        return classify(obeservation, branch)
+
+
 if __name__ == "__main__":
-    # set1, set2 = divide_set(my_data, 2, "yes")
     tree = build_tree(my_data)
-    print_tree(tree)
+    # print_tree(tree)
+    # draw_tree(tree)
+    print(classify(["(direct)", "USA", "yes", 5], tree))
