@@ -177,8 +177,69 @@ def classify(obeservation, tree):
         return classify(obeservation, branch)
 
 
+def prune(tree, mingain):
+    if not tree.tb.results:
+        prune(tree.tb, mingain)
+    if not tree.fb.results:
+        prune(tree.fb, mingain)
+
+    if tree.fb.results and tree.tb.results:
+        tb, fb = [], []
+        for v, c in tree.tb.results.items():
+            tb += [[v]] * c
+        for v, c in tree.fb.results.items():
+            fb += [[v]] * c
+
+        delta = entropy(tb + fb) - (entropy(tb) + entropy(fb) / 2)
+        if delta < mingain:
+            tree.tb, tree.fb = None, None
+            tree.results = unique_counts(tb + fb)
+
+
+def md_classify(obervation, tree):
+    if tree.results:
+        return tree.results
+    else:
+        v = obervation[tree.col]
+        if not v:
+            tr, fr = md_classify(obervation, tree.tb), md_classify(obervation, tree.fb)
+            t_count = sum(tr.values())
+            f_count = sum(fr.values())
+            tw = float(t_count) / (t_count + f_count)
+            fw = float(f_count) / (t_count + f_count)
+            result = {}
+            for k, v in tr.items():
+                result[k] = v * tw
+            for k, v in fr.items():
+                if k not in result:
+                    result[k] = 0
+                result[k] += v * fw
+            return result
+        else:
+            if isinstance(v, int) or isinstance(v, float):
+                if v >= tree.value:
+                    branch = tree.tb
+                else:
+                    branch = tree.fb
+            else:
+                if v == tree.value:
+                    branch = tree.tb
+                else:
+                    branch = tree.fb
+            return md_classify(obervation, branch)
+
+
+def variance(rows):
+    if not len(rows):
+        return 0
+    data = [float(rows[len(row) - 1]) for row in rows]
+    mean = sum(data) / len(data)
+    variance_results = sum((d - mean) ** 2 for d in data) / len(data)
+    return variance_results
+
+
 if __name__ == "__main__":
     tree = build_tree(my_data)
+    # print(md_classify(["google", None, "yes", None], tree))
+    print(md_classify(["google", "France", None, None], tree))
     # print_tree(tree)
-    # draw_tree(tree)
-    print(classify(["(direct)", "USA", "yes", 5], tree))

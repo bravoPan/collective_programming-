@@ -16,11 +16,6 @@ destination = "LGA"
 
 flights = {}
 
-for line in open("schedule.txt"):
-    origin, dest, depart, arrive, price = line.strip().split(",")
-    flights.setdefault((origin, dest), [])
-    flights[(origin, dest)].append((depart, arrive, int(price)))
-
 
 def get_minutes(t):
     x = time.strptime(t, "%H:%M")
@@ -191,6 +186,11 @@ def genetic_optimize(domain, costf, popsize=50, step=1, muprob=0.2, elite=0.2, m
 
 
 if __name__ == "__main__":
+    for line in open("schedule.txt"):
+        origin, dest, depart, arrive, price = line.strip().split(",")
+        flights.setdefault((origin, dest), [])
+        flights[(origin, dest)].append((depart, arrive, int(price)))
+
     # s = [1, 4, 3, 2, 7, 3, 6, 3, 2, 4, 5, 3]
     # pprint(schedule_cost(s))
     domain = [(0, 9)] * (len(people) * 2)
