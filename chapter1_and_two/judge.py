@@ -53,5 +53,9 @@ def sim_person(prefs, person1, person2):
 
 
 if __name__ == "__main__":
-    print("The Euclid method is : " + str(sim_distance(critics, 'Lisa Rose', 'Gene Seymour')))
-    print("The person method is: " + str(sim_person(critics, 'Lisa Rose', 'Gene Seymour')))
+    # print("The Euclid method is : " + str(sim_distance(critics, 'Lisa Rose', 'Gene Seymour')))
+    # print("The person method is: " + str(sim_person(critics, 'Lisa Rose', 'Gene Seymour')))
+    a = {}
+    a.setdefault("A", 1)
+    a.setdefault("A", 2)
+    print(a)

@@ -171,8 +171,6 @@ def get_offset(rows, gamma=10):
     return (1.0 / (len(l1) ** 2)) * sum1 - (1.0 / (len(l0) ** 2)) * sum0
 
 
-
-
 if __name__ == "__main__":
     # plot_age_matches(agesonly)
     line_art_train(agesonly)
